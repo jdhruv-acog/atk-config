@@ -1,0 +1,7 @@
+logging:
+  level: debug
+
+database:
+  pool:
+    min: 1
+    max: 5

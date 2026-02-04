@@ -1,0 +1,8 @@
+database:
+  host: prod-db.example.com
+  pool:
+    min: 10
+    max: 50
+
+logging:
+  level: warn

@@ -1,0 +1,5 @@
+port: 8080
+host: 0.0.0.0
+
+# This extra key will cause strict validation to fail
+extraKey: this-should-not-be-here

@@ -1,0 +1,19 @@
+app:
+  name: Nested Schema Demo
+  version: 2.1.0
+
+server:
+  http:
+    port: 8080
+    host: localhost
+  https:
+    enabled: true
+    port: 8443
+
+database:
+  primary:
+    host: db-primary.example.com
+    port: 5432
+  replica:
+    host: db-replica.example.com
+    port: 5432

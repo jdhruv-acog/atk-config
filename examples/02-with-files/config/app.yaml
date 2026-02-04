@@ -1,0 +1,5 @@
+appName: Multi-File Demo
+
+database:
+  host: db.example.com
+  port: 5433

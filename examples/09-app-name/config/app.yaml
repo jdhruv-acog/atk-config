@@ -1,0 +1,7 @@
+appName: App Name Example
+
+server:
+  port: 4000
+
+database:
+  host: db.example.com
