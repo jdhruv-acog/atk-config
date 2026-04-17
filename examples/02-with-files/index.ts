@@ -47,8 +47,6 @@ const config = await loadConfig({
   debug: true
 });
 
-config.validate();
-
 console.log('\n=== Multi-File Configuration ===');
 console.log('App Name:', config.get('appName'));
 console.log('API URL:', config.get('api.url'));

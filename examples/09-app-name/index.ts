@@ -37,8 +37,6 @@ const config = await loadConfig({
   debug: true
 });
 
-config.validate();
-
 console.log('\n=== App Name Example ===');
 console.log('App Name:', config.get('appName'));
 console.log('Server Port:', config.get('server.port'));

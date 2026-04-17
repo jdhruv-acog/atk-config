@@ -19,8 +19,13 @@ export function deepMerge(target: any, source: any, visited: WeakSet<object> = n
     const sourceValue = source[key];
     const targetValue = result[key];
 
-    if (isPlainObject(sourceValue) && isPlainObject(targetValue)) {
-      result[key] = deepMerge(targetValue, sourceValue, visited);
+    if (isPlainObject(sourceValue)) {
+      // Catch circular refs regardless of what target looks like
+      if (visited.has(sourceValue)) {
+        throw new Error('Circular reference detected in configuration');
+      }
+      // Always recurse into plain objects so visited tracking works correctly
+      result[key] = deepMerge(isPlainObject(targetValue) ? targetValue : {}, sourceValue, visited);
     } else {
       result[key] = sourceValue;
     }

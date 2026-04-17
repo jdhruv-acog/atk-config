@@ -49,8 +49,6 @@ const config = await loadConfig({
   debug: true
 });
 
-config.validate();
-
 console.log('\n=== Environment-Based Configuration ===');
 console.log('Environment:', config.get('env'));
 console.log('Database Host:', config.get('database.host'));

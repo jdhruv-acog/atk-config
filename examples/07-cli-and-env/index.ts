@@ -34,8 +34,6 @@ const config = await loadConfig({
   }
 });
 
-config.validate();
-
 console.log('=== CLI Arguments & Environment Variables ===');
 console.log('Server:', `${config.get('server.host')}:${config.get('server.port')}`);
 console.log('Debug:', config.get('debug'));

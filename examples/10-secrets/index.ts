@@ -57,8 +57,6 @@ async function main() {
     }
   });
 
-  config.validate();
-
   console.log('\nStep 3: Use config (sensitive values masked)');
   console.log('Database:', `${config.get('database.host')}:****`);
   console.log('API Key:', config.get('api.key').substring(0, 8) + '...');

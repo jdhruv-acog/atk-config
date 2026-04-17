@@ -42,8 +42,6 @@ const config = await loadConfig({
   debug: true
 });
 
-config.validate();
-
 console.log('\n=== Variable Substitution Example ===');
 console.log('Database Host:', config.get('database.host'));
 console.log('API URL:', config.get('api.url'));

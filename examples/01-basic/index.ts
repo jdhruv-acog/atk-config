@@ -1,5 +1,17 @@
 import { loadConfig } from '../../src/index.js';
 
+/**
+ * The simplest usage: define a schema, call loadConfig.
+ *
+ * Values are resolved from lowest to highest priority:
+ *   schema default → config file → env var → overrides
+ *
+ * Try it:
+ *   bun examples/01-basic/index.ts
+ *   PORT=8080 bun examples/01-basic/index.ts
+ *   NODE_ENV=production bun examples/01-basic/index.ts
+ */
+
 const config = await loadConfig({
   schema: {
     port: {
@@ -7,22 +19,31 @@ const config = await loadConfig({
       format: 'port',
       default: 3000,
       env: 'PORT',
-      arg: 'port'
     },
     host: {
       doc: 'Server host',
       format: String,
       default: 'localhost',
-      env: 'HOST'
-    }
-  }
+      env: 'HOST',
+    },
+    logLevel: {
+      doc: 'Log verbosity',
+      format: ['debug', 'info', 'warn', 'error'] as const,
+      default: 'info' as const,
+      env: 'LOG_LEVEL',
+    },
+  },
+  paths: {
+    config: './examples/01-basic/config',
+  },
 });
 
-config.validate();
+// Return types are fully inferred — no casting needed
+const port: number = config.get('port');
+const host: string = config.get('host');
+const logLevel: 'debug' | 'info' | 'warn' | 'error' = config.get('logLevel');
 
 console.log('=== Basic Example ===');
-console.log('Port:', config.get('port'));
-console.log('Host:', config.get('host'));
-console.log('\nTry:');
-console.log('  PORT=8080 bun examples/01-basic/index.ts');
-console.log('  bun examples/01-basic/index.ts --port 9000');
+console.log(`Server  : http://${host}:${port}`);
+console.log(`LogLevel: ${logLevel}`);
+console.log(`Sources : ${config.getSources().join(', ') || 'none (all defaults)'}`);

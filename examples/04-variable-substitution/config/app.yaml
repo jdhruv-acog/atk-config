@@ -1,7 +1,12 @@
 database:
+  # ${VAR:-default}: use env var, fall back to default if not set
   host: ${DB_HOST:-localhost}
-  password: ${DB_PASSWORD}
-  connectionString: postgresql://${DB_HOST:-localhost}:5432/mydb
+
+  # "${VAR:-}": optional value — quotes are needed so YAML treats empty as string not null
+  password: "${DB_PASSWORD:-}"
+
+  # Compose env vars into larger values
+  connectionString: "postgresql://${DB_HOST:-localhost}:5432/mydb"
 
 api:
-  url: ${API_BASE:-http://localhost:3000}/v1
+  url: "${API_BASE:-http://localhost:3000}/v1"

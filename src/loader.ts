@@ -26,7 +26,7 @@ function parseFileContent(content: string, filePath: string): any {
     return JSON.parse(substituted);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to parse ${filePath}: ${message}`);
+    throw new Error(`Failed to parse ${filePath}:\n  ${message}`);
   }
 }
 
@@ -41,109 +41,111 @@ function findFile(basePath: string): { path: string; allFound: string[] } | null
     }
   }
 
-  if (found.length === 0) {
-    return null;
-  }
+  if (found.length === 0) return null;
 
   return { path: found[0], allFound: found };
 }
 
-function loadFile(filePath: string, debug: boolean): any | null {
-  try {
-    const content = readFileSync(filePath, 'utf-8');
-    const parsed = parseFileContent(content, filePath);
+function loadFile(filePath: string, debug: boolean): any {
+  const content = readFileSync(filePath, 'utf-8');
+  const parsed = parseFileContent(content, filePath);
 
-    if (debug) {
-      console.error(`[atk:config] Loaded ${filePath}`);
-    }
-
-    return parsed;
-  } catch (error) {
-    throw error;
+  if (debug) {
+    console.error(`[atk:config]   Loaded ${filePath}`);
   }
+
+  return parsed;
 }
 
-function tryLoadFile(basePath: string, debug: boolean, warnMultiple: boolean = false): any | null {
+function tryLoadFile(
+  basePath: string,
+  debug: boolean,
+  sources: string[],
+  warnMultiple = false
+): any | null {
   const result = findFile(basePath);
 
   if (!result) {
     if (debug) {
-      console.error(`[atk:config] Not found: ${basePath}.{json,yaml,yml,json5}`);
+      console.error(`[atk:config]   Skipped ${basePath}.{json,yaml,yml,json5} — not found`);
     }
     return null;
   }
 
   if (warnMultiple && result.allFound.length > 1) {
-    console.error(`[atk:config] Warning: Multiple config files found for ${basePath}:`);
-    result.allFound.forEach(f => console.error(`[atk:config]   - ${f}`));
+    console.error(`[atk:config] Warning: multiple config files found for ${basePath}:`);
+    result.allFound.forEach(f => console.error(`[atk:config]   ${f}`));
     console.error(`[atk:config] Using: ${result.path}`);
   }
 
+  sources.push(result.path);
   return loadFile(result.path, debug);
+}
+
+export interface LoadResult {
+  merged: any;
+  sources: string[];
 }
 
 export async function discoverAndLoad(
   files: string[],
   paths: ConfigPaths,
   appName: string | undefined,
-  defaults: Record<string, any> | undefined,
+  baseConfig: Record<string, any> | undefined,
   nodeEnv: string,
   debug: boolean
-): Promise<any> {
-  let config: any = {};
+): Promise<LoadResult> {
+  let merged: any = {};
+  const sources: string[] = [];
 
-  if (defaults) {
-    for (const file of files) {
-      if (defaults[file]) {
-        config = deepMerge(config, defaults[file]);
-        if (debug) {
-          console.error(`[atk:config] Loaded bundled default: ${file}`);
-        }
-      }
+  // Layer 1: baseConfig (base layer, lowest priority above schema defaults)
+  if (baseConfig && Object.keys(baseConfig).length > 0) {
+    merged = deepMerge(merged, baseConfig);
+    if (debug) {
+      console.error('[atk:config]   Applied baseConfig');
     }
   }
 
-  const searchLocations = [
-    { name: 'config', path: paths.config },
-    { name: 'global', path: paths.global },
-    { name: 'local', path: paths.local }
-  ];
-
-  for (const location of searchLocations) {
-    const resolvedPath = expandTilde(location.path);
-
-    for (const file of files) {
-      const filePath = join(resolvedPath, file);
-      const loaded = tryLoadFile(filePath, debug, true);
-
-      if (loaded) {
-        config = deepMerge(config, loaded);
-      }
-    }
-  }
-
+  // Layer 2: project config dir (./config/)
   const configPath = expandTilde(paths.config);
-  const envPath = join(configPath, nodeEnv);
-  const envLoaded = tryLoadFile(envPath, debug, true);
+  if (debug) console.error(`[atk:config]   Searching ${configPath}/`);
 
-  if (envLoaded) {
-    config = deepMerge(config, envLoaded);
+  for (const file of files) {
+    const loaded = tryLoadFile(join(configPath, file), debug, sources, true);
+    if (loaded) merged = deepMerge(merged, loaded);
   }
 
+  // Layer 3: NODE_ENV overlay from project config dir only
+  const envFilePath = join(configPath, nodeEnv);
+  const envLoaded = tryLoadFile(envFilePath, debug, sources, true);
+  if (envLoaded) merged = deepMerge(merged, envLoaded);
+
+  // Layer 4: global user config (~/.atk/)
+  const globalPath = expandTilde(paths.global);
+  if (debug) console.error(`[atk:config]   Searching ${globalPath}/`);
+
+  for (const file of files) {
+    const loaded = tryLoadFile(join(globalPath, file), debug, sources, false);
+    if (loaded) merged = deepMerge(merged, loaded);
+  }
+
+  // Layer 5: local overrides (./)
+  const localPath = expandTilde(paths.local);
+  if (debug) console.error(`[atk:config]   Searching ${localPath}/`);
+
+  for (const file of files) {
+    const loaded = tryLoadFile(join(localPath, file), debug, sources, false);
+    if (loaded) merged = deepMerge(merged, loaded);
+  }
+
+  // Layer 6: appName-specific global + local config
   if (appName) {
-    const globalAppPath = join(expandTilde(paths.global), appName);
-    const localAppPath = join(expandTilde(paths.local), appName);
+    const globalApp = tryLoadFile(join(globalPath, appName), debug, sources, false);
+    if (globalApp) merged = deepMerge(merged, globalApp);
 
-    const globalApp = tryLoadFile(globalAppPath, debug, false);
-    if (globalApp) {
-      config = deepMerge(config, globalApp);
-    }
-
-    const localApp = tryLoadFile(localAppPath, debug, false);
-    if (localApp) {
-      config = deepMerge(config, localApp);
-    }
+    const localApp = tryLoadFile(join(localPath, appName), debug, sources, false);
+    if (localApp) merged = deepMerge(merged, localApp);
   }
 
-  return config;
+  return { merged, sources };
 }

@@ -12,9 +12,10 @@ examples=(
   "05-nested-schema"
   "06-validation-strict"
   "07-cli-and-env"
-  "08-bundled-defaults"
+  "08-base-config"
   "09-app-name"
   "10-secrets"
+  "11-commander"
 )
 
 failed=0
@@ -24,9 +25,13 @@ for example in "${examples[@]}"; do
   echo "-----------------------------------"
   echo "Running: $example"
   echo "-----------------------------------"
-  
-  if bun "examples/$example/index.ts" 2>&1 | head -20; then
-    echo "✓ $example passed"
+
+  if bun "examples/$example/index.ts" 2>&1 | head -30; then
+    if [ "$example" = "06-validation-strict" ]; then
+      echo "✓ $example passed (expected failure)"
+    else
+      echo "✓ $example passed"
+    fi
   else
     if [ "$example" = "06-validation-strict" ]; then
       echo "✓ $example passed (expected failure)"

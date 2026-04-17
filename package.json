@@ -1,6 +1,6 @@
 {
   "name": "atk-config",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Schema-validated hierarchical configuration with automatic environment support",
   "license": "MIT",
   "author": "Aganitha <support@aganitha.ai>",
@@ -29,7 +29,8 @@
   ],
   "scripts": {
     "build": "rm -rf dist && tsc",
-    "test": "./examples/run-all.sh",
+    "test": "bun test",
+    "test:examples": "./examples/run-all.sh",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -51,6 +52,7 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/convict": "^6.1.6",
+    "commander": "^12.0.0",
     "typescript": "^5"
   }
 }

@@ -1,11 +1,13 @@
 export function substituteVariables(content: string, filePath?: string): string {
-  const regex = /\$\{([A-Z0-9_]+)(?::(-|\?)([^}]*))?\}/g;
+  // Matches ${VAR}, ${VAR:-default}, ${VAR:?error} — supports upper and lowercase names
+  const regex = /\$\{([A-Za-z0-9_]+)(?::(-|\?)([^}]*))?\}/g;
 
   return content.replace(regex, (match, varName, op, arg) => {
     const envValue = process.env[varName];
+    const hasValue = envValue !== undefined && envValue !== '';
 
-    if (envValue !== undefined && envValue !== '') {
-      return envValue;
+    if (hasValue) {
+      return envValue as string;
     }
 
     if (op === '-') {
@@ -18,6 +20,7 @@ export function substituteVariables(content: string, filePath?: string): string 
       throw new Error(`${message}${location}`);
     }
 
-    return match;
+    // Bare ${VAR} with no operator — unset → empty string (bash convention)
+    return '';
   });
 }

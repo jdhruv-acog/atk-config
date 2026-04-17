@@ -85,8 +85,6 @@ const config = await loadConfig({
   }
 });
 
-config.validate();
-
 console.log('=== Nested Schema Example ===');
 console.log('\nApp:');
 console.log('  Name:', config.get('app.name'));
