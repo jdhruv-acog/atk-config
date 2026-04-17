@@ -673,3 +673,106 @@ const config = await loadConfig({ schema });
 ```
 
 ---
+
+## LLM quick reference
+
+This section is a compact specification for LLMs (language models, agents) working with atk-config.
+
+### Schema field spec
+
+```typescript
+{
+  keyName: {
+    format: 'port' | 'nat' | 'int' | 'url' | 'email' | 'ipaddress'
+          | String | Number | Boolean | Array | ['a', 'b'] as const,
+    default: <value>,          // required — type must match format
+    env?: 'ENV_VAR_NAME',      // optional env var binding
+    doc?: 'description',       // optional human-readable description
+    sensitive?: boolean,       // optional — masks value in toString()
+  }
+}
+```
+
+Schemas can be arbitrarily nested. Access nested keys with dot notation.
+
+### `loadConfig` options quick spec
+
+```typescript
+await loadConfig({
+  schema,                    // required
+  files: ['config'],         // file base names; default ['config']
+  baseConfig: {},            // base layer below files
+  overrides: {},             // top layer above env vars; undefined/unknown keys ignored; nested objects flattened
+  appName: 'name',           // enables ~/.atk/{name}.* and ./{name}.*
+  paths: { config, global, local },  // override search dirs
+  strict: false,             // true → unknown keys throw
+  skipValidation: false,     // true → don't auto-validate
+  debug: false,              // true → verbose stderr output
+})
+```
+
+### Loading order (unambiguous numbered list)
+
+1. `schema.default` fields (convict internal baseline)
+2. `baseConfig` option (merged as base before files)
+3. `./config/{files[0]}.*`, `./config/{files[1]}.*`, … (in files[] order)
+4. `./config/{NODE_ENV}.*`
+5. `~/.atk/{files[0]}.*`, `~/.atk/{files[1]}.*`, …
+6. `./{files[0]}.*`, `./{files[1]}.*`, …
+7. `~/.atk/{appName}.*` (only if appName set)
+8. `./{appName}.*` (only if appName set)
+9. Env vars via `env:` bindings in schema
+10. `overrides` option
+
+### Variable substitution spec
+
+Applies to raw file content before parsing. Regex: `${[A-Za-z0-9_]+}` with optional `:-` or `:?` operator.
+
+- `${VAR}` → env value if set, `""` if not set
+- `${VAR:-default}` → env value if set and non-empty, `default` otherwise
+- `${VAR:?msg}` → env value if set and non-empty, throws `Error(msg + " in " + filePath)` otherwise
+- `${VAR:?}` → throws with default message `Required environment variable VAR is not set`
+
+### Deep merge rules
+
+- Objects: recursively merged (later layer overrides specific keys)
+- Arrays: replaced entirely (not concatenated)
+- Any other type change: later layer wins
+
+### Commander integration pattern
+
+```typescript
+overrides: { ...program.opts(), ...commandOpts }
+```
+
+Rules:
+- `undefined` values in overrides are ignored (user didn't pass the flag → use file/env value)
+- Unknown keys in overrides are ignored (Commander internals don't cause errors)
+- Nested objects are flattened: `{ database: { host: 'x' } }` → `{ 'database.host': 'x' }`
+- Schema keys must be top-level camelCase to match Commander's `opts` object
+
+### Type inference
+
+`config.get('key')` return types are inferred from the schema automatically (TypeScript 5.0+):
+
+| Schema format | TypeScript type |
+|--------------|----------------|
+| `'port'` / `'nat'` / `'int'` | `number` |
+| `'url'` / `'email'` / `'ipaddress'` | `string` |
+| `String` | `string` |
+| `Number` | `number` |
+| `Boolean` | `boolean` |
+| `Array` | `any[]` |
+| `['a', 'b'] as const` | `'a' \| 'b'` |
+| Nested namespace | object type |
+
+### `config` instance methods
+
+```typescript
+config.get('dotted.key')        // → inferred type from schema
+config.getProperties()          // → full config as typed plain object
+config.getSources()             // → string[] of loaded file paths
+config.validate(opts?)          // → throws on invalid; opts: { allowed: 'strict'|'warn' }
+config.toString()               // → JSON string with sensitive values masked
+config.has('dotted.key')        // → boolean
+```

@@ -3,15 +3,19 @@
 Schema-validated hierarchical configuration for Node.js and Bun.
 Requires TypeScript 5.0+ for full type inference.
 
+---
+
 ## Install
 
 ```bash
 bun add atk-config
 ```
 
+---
+
 ## Quick start
 
-```typescript
+```ts
 import { loadConfig } from 'atk-config';
 
 const config = await loadConfig({
@@ -25,135 +29,172 @@ const config = await loadConfig({
   },
 });
 
-// Types inferred from the schema — no casting, no manual interface
-const port: number = config.get('port');
-const host: string = config.get('database.host');
+config.get('port');            // number
+config.get('database.host');   // string
 ```
 
-`loadConfig` throws if any value fails validation. Config is always safe to use immediately.
-
-## Schema format
-
-Each leaf key is a field descriptor. Schemas can be arbitrarily nested; access nested values with dot notation.
-
-```typescript
-{
-  keyName: {
-    format: 'port' | 'nat' | 'int' | 'url' | 'email' | 'ipaddress'
-          | String | Number | Boolean | Array | ['a', 'b'] as const,
-    default: <value>,        // required — type must match format
-    env?: 'ENV_VAR_NAME',    // bind to an environment variable
-    doc?: 'description',     // human-readable label
-    sensitive?: true,        // masks the value in toString()
-  }
-}
-```
-
-| Format | TypeScript type |
-|--------|----------------|
-| `'port'` / `'nat'` / `'int'` | `number` |
-| `'url'` / `'email'` / `'ipaddress'` | `string` |
-| `String` | `string` |
-| `Number` | `number` |
-| `Boolean` | `boolean` |
-| `Array` | `any[]` |
-| `['a', 'b'] as const` | `'a' \| 'b'` |
-| Nested namespace | object type |
-
-## Priority order
-
-Values are resolved from lowest to highest priority:
-
-| # | Source | Default path |
-|---|--------|-------------|
-| 1 | Schema `default` field | — |
-| 2 | `baseConfig` option | — |
-| 3 | Config files | `./config/{files}.*` |
-| 4 | NODE_ENV overlay | `./config/{NODE_ENV}.*` |
-| 5 | Global user config | `~/.atk/{files}.*` |
-| 6 | Local overrides | `./{files}.*` |
-| 7 | `appName` global _(if set)_ | `~/.atk/{appName}.*` |
-| 8 | `appName` local _(if set)_ | `./{appName}.*` |
-| 9 | Environment variables | `env:` field in schema |
-| 10 | `overrides` option | — |
-
-File formats tried in order: `.json` → `.yaml` → `.yml` → `.json5`. Missing files are silently skipped.
-
-## Config files
-
-Create `./config/config.yaml` (or `.json`, `.json5`) to override schema defaults:
+Optional config file:
 
 ```yaml
+# config/config.yaml
 port: 4000
-logLevel: debug
 database:
   host: my-db.internal
 ```
 
-`NODE_ENV=production` automatically merges `./config/production.yaml` on top. Use `files: ['common', 'app']` to load multiple base files in order.
+Run:
 
-## Variable substitution
-
-Env var references in config files are substituted before parsing:
-
-```yaml
-database:
-  host:     ${DB_HOST:-localhost}
-  password: "${DB_PASSWORD:?Set DB_PASSWORD before starting}"
-  url:      "postgresql://${DB_HOST:-localhost}:5432/mydb"
+```bash
+PORT=5000 bun index.ts
 ```
 
-| Syntax | Behavior |
-|--------|----------|
-| `${VAR}` | Env value, or `""` if unset |
-| `${VAR:-default}` | Env value if set and non-empty, `default` otherwise |
-| `${VAR:?message}` | Env value if set and non-empty, **throws** with `message` otherwise |
+Resolution order (simplified):
 
-Quote values that might be empty (`"${DB_PASSWORD:-}"`) — bare empty substitutions parse as YAML `null`.
+```
+default → config files → env → overrides
+```
 
-## `baseConfig` option
+`loadConfig` throws on invalid values. Returned config is always safe to use.
 
-A plain object loaded below config files. Useful for programmatic defaults that can still be overridden by files:
+---
 
-```typescript
-const config = await loadConfig({
-  schema: { port: { format: 'port', default: 3000 } },
-  baseConfig: { port: 4000 },
-  // schema default=3000 → baseConfig=4000 → config file can still override
+## Schema
+
+Each key defines type, default, and optional env binding.
+
+```ts
+{
+  key: {
+    format: 'port' | 'nat' | 'int' | 'url' | 'email' | 'ipaddress'
+          | String | Number | Boolean | Array | ['a', 'b'] as const,
+    default: <value>,
+    env?: 'ENV_VAR',
+    doc?: 'description',
+    sensitive?: true,
+  }
+}
+```
+
+* `format` defines validation + TypeScript type
+* `default` is required and must match the format
+* schemas can be nested arbitrarily
+
+Types are inferred automatically:
+
+```ts
+config.get('port')          // number
+config.get('database.host') // string
+```
+
+---
+
+## Config files
+
+Default location:
+
+```
+./config/config.yaml
+```
+
+Environment overlay:
+
+```
+NODE_ENV=production → ./config/production.yaml
+```
+
+Multiple files:
+
+```ts
+await loadConfig({
+  schema,
+  files: ['common', 'app'],
 });
 ```
 
-## Commander integration
+Files are loaded in order and merged.
 
-Pass `program.opts()` as `overrides`. Flags the user didn't pass are `undefined` and automatically ignored, so file and env values still apply:
+Supported formats:
 
-```typescript
-program.command('serve')
-  .option('--port <n>', 'Port', Number)
-  .option('--host <host>', 'Host')
-  .action(async (commandOpts) => {
-    const config = await loadConfig({
-      schema,
-      overrides: { ...program.opts(), ...commandOpts },
-    });
-  });
+```
+.json → .yaml → .yml → .json5
+```
 
-program.parse();
+First match wins.
+
+---
+
+## Environment variables
+
+Bind explicitly in schema:
+
+```ts
+port: { format: 'port', default: 3000, env: 'PORT' }
+```
+
+Env values override config files.
+
+---
+
+## Merging behavior
+
+* objects merge recursively
+* arrays replace (not concatenated)
+* later layers override earlier ones
+
+---
+
+## Overrides (highest priority)
+
+```ts
+await loadConfig({
+  schema,
+  overrides: { port: 9000 },
+});
 ```
 
 Rules:
-- `undefined` override values are ignored — file/env value is used instead
-- Unknown keys (Commander internals) are silently dropped
-- Nested objects are flattened: `{ database: { host: 'x' } }` → sets `database.host` only, siblings untouched
-- CLI-overridable schema keys should be top-level camelCase to match Commander (`--log-level` → `logLevel`)
 
-## Global developer config (`appName`)
+* `undefined` values are ignored
+* unknown keys are ignored
+* nested objects are flattened
 
-```typescript
-const config = await loadConfig({ appName: 'my-api', schema });
+---
+
+## baseConfig
+
+Programmatic defaults applied before files:
+
+```ts
+await loadConfig({
+  schema,
+  baseConfig: { port: 4000 },
+});
 ```
 
-Each developer creates `~/.atk/my-api.yaml` once with personal settings — log level, local DB host, debug flags. The project picks it up automatically. Nothing to commit, nothing to configure per checkout.
+Use for runtime-derived defaults.
+
+---
+
+## Validation
+
+Runs automatically on load.
+
+```ts
+await loadConfig({ schema }); // throws if invalid
+```
+
+Strict mode:
+
+```ts
+await loadConfig({
+  schema,
+  strict: true,
+});
+```
+
+Unknown keys now throw instead of warn.
+
+---
 
 ## Debugging
 
@@ -161,61 +202,109 @@ Each developer creates `~/.atk/my-api.yaml` once with personal settings — log 
 DEBUG=atk:config bun index.ts
 ```
 
-Prints every file searched, loaded, and skipped with the exact merge order. Also available as `debug: true` in options.
+Shows:
 
-```typescript
+* files searched and loaded
+* merge order
+* applied layers
+
+```ts
 config.getSources()
-// ['config/config.yaml', '/Users/you/.atk/my-api.yaml']
 ```
-
-## Full reference
-
-See [docs/guide.md](./docs/guide.md) for deep merge rules, strict mode, secrets management, and the complete API reference.
 
 ---
 
-## Quick reference
+## Variable substitution
 
-Compact spec for fast lookup.
+In config files:
 
-### `loadConfig` options
+```yaml
+database:
+  host: ${DB_HOST:-localhost}
+  password: "${DB_PASSWORD:?Required}"
+```
 
-```typescript
+* `${VAR}` → value or empty
+* `${VAR:-default}` → fallback
+* `${VAR:?msg}` → throw if missing
+
+Runs before parsing.
+
+---
+
+## Commander integration
+
+```ts
+overrides: {
+  ...program.opts(),
+  ...commandOpts,
+}
+```
+
+* CLI flags override config
+* missing flags fall back to file/env values
+* schema keys must match camelCase option names
+
+---
+
+## Global config (`appName`)
+
+```ts
 await loadConfig({
-  schema,                              // required
-  files?: ['config'],                  // base file names; default ['config']
-  baseConfig?: {},                     // base layer below config files
-  overrides?: {},                      // highest priority; undefined/unknown keys ignored; nested objects flattened
-  appName?: 'name',                    // enables ~/.atk/{name}.* and ./{name}.*
-  paths?: { config, global, local },   // override default search directories
-  strict?: false,                      // true → unknown keys in files throw
-  skipValidation?: false,              // true → skip auto-validation on load
-  debug?: false,                       // true → verbose stderr output
+  schema,
+  appName: 'my-api',
+});
+```
+
+Enables:
+
+```
+~/.atk/my-api.yaml
+./my-api.yaml
+```
+
+Used for per-developer overrides.
+
+---
+
+## Full resolution order
+
+Complete merge order:
+
+1. schema defaults
+2. baseConfig
+3. `./config/{files}`
+4. `./config/{NODE_ENV}`
+5. `~/.atk/{files}`
+6. `./{files}`
+7. `~/.atk/{appName}`
+8. `./{appName}`
+9. env vars
+10. overrides
+
+---
+
+## API
+
+```ts
+await loadConfig({
+  schema,
+  files?,
+  baseConfig?,
+  overrides?,
+  appName?,
+  paths?,
+  strict?,
+  skipValidation?,
+  debug?,
 })
 ```
 
-### `config` instance API
-
-```typescript
-config.get('dotted.key')        // → inferred type from schema
-config.getProperties()          // → full config as typed plain object
-config.getSources()             // → string[] of loaded file paths (copy)
-config.validate(opts?)          // → throws on invalid; opts: { allowed: 'strict'|'warn' }
-config.toString()               // → JSON string; sensitive values masked as "[Sensitive]"
-config.has('dotted.key')        // → boolean; true for both leaf keys and namespace nodes
+```ts
+config.get(path)
+config.getProperties()
+config.getSources()
+config.validate()
+config.toString()
+config.has(path)
 ```
-
-### Variable substitution spec
-
-Applied to raw file content before parsing. Variable names: `[A-Za-z0-9_]+`.
-
-- `${VAR}` → env value if set, `""` if not
-- `${VAR:-default}` → env value if set and non-empty, `default` otherwise
-- `${VAR:?msg}` → env value if set and non-empty, throws `Error(msg + " in " + filePath)` otherwise
-- `${VAR:?}` → throws with default message `Required environment variable VAR is not set`
-
-### Deep merge rules
-
-- Objects merge recursively — later layer overrides specific keys, siblings untouched
-- Arrays replace entirely — no concatenation
-- All other type changes — later layer wins
