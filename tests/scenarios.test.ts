@@ -25,7 +25,6 @@ function isolated(subdir: string) {
   return {
     config: dir(subdir, 'config'),
     global: dir(subdir, 'global'),
-    local:  dir(subdir, 'local'),
   };
 }
 

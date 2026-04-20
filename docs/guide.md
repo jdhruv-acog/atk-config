@@ -109,16 +109,14 @@ startServer(config.getProperties()); // fully typed
 When you call `loadConfig`, sources are merged from lowest to highest priority:
 
 ```
- 1. Schema default fields     — the default: value in each schema property
- 2. baseConfig option         — flat object you provide in code
- 3. ./config/{files}.*        — project config files (one per name in files[])
- 4. ./config/{NODE_ENV}.*     — environment overlay (config dir only)
- 5. ~/.atk/{files}.*          — global user config (one per name in files[])
- 6. ./{files}.*               — local overrides (one per name in files[])
- 7. ~/.atk/{appName}.*        — appName global (only if appName is set)
- 8. ./{appName}.*             — appName local  (only if appName is set)
- 9. Environment variables     — env: bindings in schema
-10. overrides option          — highest priority, applied via config.set()
+1. Schema default fields     — the default: value in each schema property
+2. baseConfig option         — flat object you provide in code
+3. ./config/{files}.*        — project config files (one per name in files[])
+4. ./config/{NODE_ENV}.*     — environment overlay (config dir only)
+5. ~/.atk/{files}.*          — global user config (one per name in files[])
+6. ~/.atk/{appName}.*        — appName global override (only if appName is set)
+7. Environment variables     — env: bindings in schema
+8. overrides option          — highest priority, applied via config.set()
 ```
 
 ### The `files` option
@@ -135,12 +133,10 @@ await loadConfig({
   //   ./config/{NODE_ENV}.*
   //   ~/.atk/common.*
   //   ~/.atk/app.*
-  //   ./common.*
-  //   ./app.*
 });
 ```
 
-Missing files are silently skipped. The `files` names apply to every layer (config dir, global, local) — but the NODE_ENV overlay is always a single file, only from the config dir.
+Missing files are silently skipped. The `files` names apply to both the project config dir and the global `~/.atk` dir. The NODE_ENV overlay is always a single file, only from the project config dir.
 
 ### File format priority
 
@@ -153,8 +149,7 @@ If multiple formats exist for the same base name, the library logs a warning to 
 | Path | Default | Purpose |
 |------|---------|---------|
 | `paths.config` | `./config` | Project config files and NODE_ENV overlay |
-| `paths.global` | `~/.atk` | Per-developer global overrides |
-| `paths.local` | `.` | Per-project local overrides (usually gitignored) |
+| `paths.global` | `~/.atk` | Global developer config (API keys, debug settings, personal preferences) |
 
 Override any path with the `paths` option in `loadConfig`.
 
@@ -374,14 +369,14 @@ Deeply nested schema keys (`database.host`) are not directly CLI-overridable. Us
 
 ## Global developer config (`appName`)
 
-When `appName` is set, the loader automatically loads `~/.atk/{appName}.yaml` and `./{appName}.yaml` as additional layers above the regular files.
+When `appName` is set, the loader automatically loads `~/.atk/{appName}.yaml` as an additional layer above the regular `~/.atk/{files}.*` global config.
 
 ```typescript
 const config = await loadConfig({
   appName: 'my-api',
   schema,
 });
-// Also loads ~/.atk/my-api.yaml and ./my-api.yaml (if they exist)
+// Also loads ~/.atk/my-api.yaml (if it exists)
 ```
 
 **Developer workflow:** Each developer creates `~/.atk/my-api.yaml` once:
@@ -399,6 +394,8 @@ These overrides are:
 - **Automatic** — no env vars to set, no per-project files to create
 
 New developers get sensible defaults from the project's config files. They customize their `~/.atk/{appName}.yaml` as needed.
+
+**Two-tier global config:** The `~/.atk/` directory serves two purposes. Files matching `files[]` (e.g., `~/.atk/config.yaml`) hold settings shared across all your apps — API keys, debug preferences, personal defaults. Files matching `appName` (e.g., `~/.atk/my-api.yaml`) hold settings specific to one app. The app-specific file loads after the shared files, so it can override them.
 
 ---
 
@@ -492,20 +489,6 @@ const config = await loadConfig({
 
 `sensitive: true` masks the value in `config.toString()` output, preventing log leakage.
 
-### Gitignored local file
-
-```yaml
-# ./config.yaml (gitignored)
-database:
-  password: dev_password_123
-```
-
-Add to `.gitignore`:
-```
-config.yaml
-*.local.yaml
-```
-
 ---
 
 ## Debugging
@@ -528,6 +511,7 @@ Or `debug: true` in options. Output goes to stderr.
 [atk:config]   Loaded config/app.yaml
 [atk:config]   Loaded config/production.yaml
 [atk:config]   Searching /Users/you/.atk/
+[atk:config]   Loaded /Users/you/.atk/common.yaml
 [atk:config]   Loaded /Users/you/.atk/my-api.yaml
 [atk:config]   Overrides applied: port, logLevel
 [atk:config] Sources  : config/common.yaml, config/app.yaml, ...
@@ -558,11 +542,10 @@ interface LoadConfigOptions<S = any> {
   overrides?: Record<string, any>; // highest-priority layer, above env vars
                                    // nested objects are flattened to dot-notation paths
 
-  appName?: string;                // enables ~/.atk/{appName}.* and ./{appName}.*
+  appName?: string;                // enables ~/.atk/{appName}.*
   paths?: {
     config?: string;               // default: './config'
     global?: string;               // default: '~/.atk'
-    local?: string;                // default: '.'
   };
 
   strict?: boolean;                // unknown keys throw (default: false, warns only)
@@ -703,8 +686,8 @@ await loadConfig({
   files: ['config'],         // file base names; default ['config']
   baseConfig: {},            // base layer below files
   overrides: {},             // top layer above env vars; undefined/unknown keys ignored; nested objects flattened
-  appName: 'name',           // enables ~/.atk/{name}.* and ./{name}.*
-  paths: { config, global, local },  // override search dirs
+  appName: 'name',           // enables ~/.atk/{name}.*
+  paths: { config, global }, // override search dirs
   strict: false,             // true → unknown keys throw
   skipValidation: false,     // true → don't auto-validate
   debug: false,              // true → verbose stderr output
@@ -718,11 +701,9 @@ await loadConfig({
 3. `./config/{files[0]}.*`, `./config/{files[1]}.*`, … (in files[] order)
 4. `./config/{NODE_ENV}.*`
 5. `~/.atk/{files[0]}.*`, `~/.atk/{files[1]}.*`, …
-6. `./{files[0]}.*`, `./{files[1]}.*`, …
-7. `~/.atk/{appName}.*` (only if appName set)
-8. `./{appName}.*` (only if appName set)
-9. Env vars via `env:` bindings in schema
-10. `overrides` option
+6. `~/.atk/{appName}.*` (only if appName set)
+7. Env vars via `env:` bindings in schema
+8. `overrides` option
 
 ### Variable substitution spec
 

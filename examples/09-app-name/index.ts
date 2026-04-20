@@ -43,11 +43,10 @@ console.log('Server Port:', config.get('server.port'));
 console.log('Database Host:', config.get('database.host'));
 
 console.log('\n=== How appName works ===');
-console.log('When appName is set to "myapp", the loader looks for:');
+console.log('When appName is set to "myapp", the loader also loads:');
 console.log('  ~/.atk/myapp.{json,yaml,yml,json5}');
-console.log('  ./myapp.{json,yaml,yml,json5}');
 console.log('');
-console.log('This allows user-specific config stored in home directory.');
+console.log('This allows personal developer overrides stored outside the project.');
 
 console.log('\n=== Create a global config (optional) ===');
 console.log('mkdir -p ~/.atk');

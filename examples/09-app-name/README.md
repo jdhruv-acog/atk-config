@@ -4,24 +4,23 @@ Demonstrates using `appName` to load user-specific global configuration.
 
 ## What it demonstrates
 
-- `appName` option for loading ~/.atk/{appName}.yaml
+- `appName` option for loading `~/.atk/{appName}.yaml`
 - User-specific configuration in home directory
 - Useful for CLI tools and multi-user systems
 
 ## How it works
 
-When you set `appName: 'myapp'`, the loader searches for:
+When you set `appName: 'myapp'`, the loader also searches for:
 
 ```
-1. config/app.yaml (project config)
-2. ~/.atk/myapp.yaml (global user config)
-3. ./myapp.yaml (local override)
+~/.atk/myapp.yaml  (personal developer override — never committed)
 ```
+
+on top of the normal project config in `config/app.yaml`.
 
 This allows:
-- **Project config**: Shipped with the project
-- **Global user config**: User's personal preferences across all projects
-- **Local override**: Per-project user overrides (gitignored)
+- **Project config**: Shipped with the project, the same for everyone
+- **Global user config**: Personal preferences across all checkouts
 
 ## Use cases
 

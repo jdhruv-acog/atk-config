@@ -129,22 +129,10 @@ export async function discoverAndLoad(
     if (loaded) merged = deepMerge(merged, loaded);
   }
 
-  // Layer 5: local overrides (./)
-  const localPath = expandTilde(paths.local);
-  if (debug) console.error(`[atk:config]   Searching ${localPath}/`);
-
-  for (const file of files) {
-    const loaded = tryLoadFile(join(localPath, file), debug, sources, false);
-    if (loaded) merged = deepMerge(merged, loaded);
-  }
-
-  // Layer 6: appName-specific global + local config
+  // Layer 5: appName-specific global config (~/.atk/{appName}.*)
   if (appName) {
     const globalApp = tryLoadFile(join(globalPath, appName), debug, sources, false);
     if (globalApp) merged = deepMerge(merged, globalApp);
-
-    const localApp = tryLoadFile(join(localPath, appName), debug, sources, false);
-    if (localApp) merged = deepMerge(merged, localApp);
   }
 
   return { merged, sources };

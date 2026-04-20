@@ -23,7 +23,6 @@ function isolated(subdir = 'default') {
   return {
     config: dir(subdir, 'config'),
     global: dir(subdir, 'global'),
-    local:  dir(subdir, 'local'),
   };
 }
 
@@ -688,73 +687,6 @@ describe('config.has()', () => {
       paths: isolated('has-missing-nested'),
     });
     expect(config.has('database.nonexistent')).toBe(false);
-  });
-});
-
-// ─── paths.local layer ───────────────────────────────────────────────────────
-
-describe('paths.local layer', () => {
-  test('loads {files}.* from the local dir', async () => {
-    write('local-layer/local/config.yaml', 'port: 8888\n');
-
-    const config = await loadConfig({
-      schema: { port: { format: 'port', default: 3000 } },
-      paths: isolated('local-layer'),
-    });
-
-    expect(config.get('port')).toBe(8888);
-  });
-
-  test('local layer overrides config dir', async () => {
-    write('local-override/config/config.yaml', 'port: 4000\n');
-    write('local-override/local/config.yaml', 'port: 5000\n');
-
-    const config = await loadConfig({
-      schema: { port: { format: 'port', default: 3000 } },
-      paths: isolated('local-override'),
-    });
-
-    expect(config.get('port')).toBe(5000);
-  });
-
-  test('local file appears in getSources()', async () => {
-    write('local-sources/local/config.yaml', 'port: 9000\n');
-
-    const config = await loadConfig({
-      schema: { port: { format: 'port', default: 3000 } },
-      paths: isolated('local-sources'),
-    });
-
-    expect(config.getSources().some(s => s.includes('local'))).toBe(true);
-  });
-});
-
-// ─── appName local file ──────────────────────────────────────────────────────
-
-describe('appName local file', () => {
-  test('loads ./{appName}.* from local dir', async () => {
-    write('appname-local/local/myapp.yaml', 'port: 6666\n');
-
-    const config = await loadConfig({
-      schema: { port: { format: 'port', default: 3000 } },
-      appName: 'myapp',
-      paths: isolated('appname-local'),
-    });
-
-    expect(config.get('port')).toBe(6666);
-  });
-
-  test('local appName file overrides global appName file', async () => {
-    write('appname-local-wins/global/myapp.yaml', 'port: 5000\n');
-    write('appname-local-wins/local/myapp.yaml', 'port: 6000\n');
-
-    const config = await loadConfig({
-      schema: { port: { format: 'port', default: 3000 } },
-      appName: 'myapp',
-      paths: isolated('appname-local-wins'),
-    });
-
-    expect(config.get('port')).toBe(6000);
   });
 });
 

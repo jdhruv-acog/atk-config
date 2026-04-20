@@ -67,7 +67,6 @@ export async function loadConfig<const S>(
   const configPaths: ConfigPaths = {
     config: paths.config || './config',
     global: paths.global || '~/.atk',
-    local:  paths.local  || '.',
   };
 
   const nodeEnv = process.env.NODE_ENV || 'development';

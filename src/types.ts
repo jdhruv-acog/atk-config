@@ -85,14 +85,13 @@ export interface LoadConfigOptions<S = any> {
    */
   overrides?: Record<string, any>;
 
-  /** Custom directory paths. Defaults: config='./config', global='~/.atk', local='.' */
+  /** Custom directory paths. Defaults: config='./config', global='~/.atk' */
   paths?: {
     config?: string;
     global?: string;
-    local?: string;
   };
 
-  /** App name for per-developer global config. Loads ~/.atk/{appName}.* and ./{appName}.* */
+  /** App name for per-developer global config. Loads ~/.atk/{appName}.* */
   appName?: string;
 
   /** Throw on unknown keys in config files. Default: false (warns only). */
@@ -108,7 +107,6 @@ export interface LoadConfigOptions<S = any> {
 export interface ConfigPaths {
   config: string;
   global: string;
-  local: string;
 }
 
 /**
