@@ -100,7 +100,7 @@ export async function loadConfig<const S>(
     const applied: string[] = [];
     for (const [key, value] of Object.entries(flat)) {
       if (value === undefined) continue;
-      if (config.has(key)) {
+      if ((config as any).has(key)) {
         config.set(key as any, value);
         applied.push(key);
       }
