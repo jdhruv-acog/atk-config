@@ -6,7 +6,7 @@ Comprehensive examples demonstrating all features of atk-config. Each example is
 
 ```bash
 # Clone or install atk-config
-bun install atk-config
+bun install @aganitha/atk-config
 
 # Run any example
 bun examples/01-basic/index.ts
