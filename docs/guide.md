@@ -1,4 +1,4 @@
-# atk-config — Complete Guide
+# atk-config: Complete Guide
 
 - [Schema definition and type inference](#schema-definition-and-type-inference)
 - [How file loading works](#how-file-loading-works)

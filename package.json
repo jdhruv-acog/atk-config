@@ -1,6 +1,6 @@
 {
   "name": "@aganitha/atk-config",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "Schema-validated hierarchical configuration with automatic environment support",
   "license": "MIT",
   "author": "Aganitha <support@aganitha.ai>",

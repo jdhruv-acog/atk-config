@@ -1,15 +1,14 @@
 # atk-config
 
-Schema-validated hierarchical configuration for Node.js and Bun. Define your schema once — types are inferred automatically, validation runs on load, and config assembles from files, environment variables, and code in a predictable order.
+A no-surprises config system for Node.js and Bun.
 
-Requires TypeScript 5.0+.
+Define a schema once, and it takes care of loading, merging, and validating config from files, environment variables, and code with full type inference.
+
+Read the [full guide](https://github.com/jdhruv-acog/atk-config/blob/main/docs/guide.md) and [examples](https://github.com/jdhruv-acog/atk-config/tree/main/examples). Requires TypeScript `5.0+`.
 
 ```bash
 bun add atk-config
 ```
-
----
-
 ## Quick start
 
 Define a schema, call `loadConfig`. That's it.
