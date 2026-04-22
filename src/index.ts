@@ -1,7 +1,10 @@
 import convict from 'convict';
 import convictFormatWithValidator from 'convict-format-with-validator';
+import debug from '@aganitha/atk-debug';
 import { discoverAndLoad } from './loader.js';
 import type { LoadConfigOptions, ConfigInstance, ConfigPaths, InferConfig } from './types.js';
+
+const log = debug('atk:config');
 
 convict.addFormats(convictFormatWithValidator);
 
@@ -61,8 +64,13 @@ export async function loadConfig<const S>(
     appName,
     strict = false,
     skipValidation = false,
-    debug = process.env.DEBUG?.split(',').map(s => s.trim()).includes('atk:config') ?? false,
   } = options;
+
+  if (options.debug) {
+    debug.enable('atk:config');
+  } else if (process.env.DEBUG) {
+    debug.enable(process.env.DEBUG);
+  }
 
   const configPaths: ConfigPaths = {
     config: paths.config || './config',
@@ -71,13 +79,11 @@ export async function loadConfig<const S>(
 
   const nodeEnv = process.env.NODE_ENV || 'development';
 
-  if (debug) {
-    console.error('[atk:config] ─── Loading configuration ───────────────────');
-    console.error(`[atk:config] NODE_ENV  : ${nodeEnv}`);
-    console.error(`[atk:config] files     : ${files.join(', ')}`);
-    if (appName) console.error(`[atk:config] appName   : ${appName}`);
-    if (strict)  console.error(`[atk:config] strict    : true`);
-  }
+  log('─── Loading configuration ───────────────────');
+  log('NODE_ENV  : %s', nodeEnv);
+  log('files     : %s', files.join(', '));
+  if (appName) log('appName   : %s', appName);
+  if (strict)  log('strict    : true');
 
   const config = convict(schema as any);
 
@@ -86,8 +92,7 @@ export async function loadConfig<const S>(
     configPaths,
     appName,
     baseConfig,
-    nodeEnv,
-    debug
+    nodeEnv
   );
 
   config.load(merged);
@@ -105,14 +110,12 @@ export async function loadConfig<const S>(
         applied.push(key);
       }
     }
-    if (debug && applied.length > 0) {
-      console.error(`[atk:config]   Overrides applied: ${applied.join(', ')}`);
+    if (applied.length > 0) {
+      log('  Overrides applied: %s', applied.join(', '));
     }
   }
 
-  if (debug) {
-    console.error(`[atk:config] Sources  : ${sources.length > 0 ? sources.join(', ') : 'none'}`);
-  }
+  log('Sources  : %s', sources.length > 0 ? sources.join(', ') : 'none');
 
   // Attach getSources() — returns a copy so callers can't mutate internal state
   (config as any).getSources = function (): string[] {
@@ -131,16 +134,14 @@ export async function loadConfig<const S>(
   };
 
   if (!skipValidation) {
-    if (debug) console.error('[atk:config] Validating...');
+    log('Validating...');
     (config as any).validate();
-    if (debug) console.error('[atk:config] ✓ Validation passed');
+    log('✓ Validation passed');
   } else {
-    if (debug) console.error('[atk:config] Validation skipped (skipValidation: true)');
+    log('Validation skipped (skipValidation: true)');
   }
 
-  if (debug) {
-    console.error('[atk:config] ─────────────────────────────────────────────');
-  }
+  log('─────────────────────────────────────────────');
 
   return config as unknown as ConfigInstance<InferConfig<S>>;
 }

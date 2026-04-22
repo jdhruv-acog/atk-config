@@ -1,4 +1,5 @@
-import { describe, test, expect, beforeAll, afterAll, spyOn, mock } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll, spyOn, mock, beforeEach, afterEach } from 'bun:test';
+import debug from '@aganitha/atk-debug';
 import { loadConfig } from '../src/index.js';
 import { writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
@@ -18,7 +19,7 @@ function isolated(subdir: string) {
   return {
     config: dir(subdir, 'config'),
     global: dir(subdir, 'global'),
-    local:  dir(subdir, 'local'),
+    local: dir(subdir, 'local'),
   };
 }
 
@@ -56,8 +57,8 @@ database:
 
     const nestedSchema = {
       database: {
-        host:  { format: String, default: 'localhost' },
-        port:  { format: 'port', default: 5432 },
+        host: { format: String, default: 'localhost' },
+        port: { format: 'port', default: 5432 },
         credentials: {
           user: { format: String, default: 'root' },
         },
@@ -92,7 +93,7 @@ describe('.yml extension', () => {
 
   test('.yaml takes priority over .yml when both exist', async () => {
     write('yml-priority/config/config.yaml', 'port: 1111\n');
-    write('yml-priority/config/config.yml',  'port: 2222\n');
+    write('yml-priority/config/config.yml', 'port: 2222\n');
 
     // json is tried first, then yaml, then yml — yaml wins over yml
     const config = await loadConfig({ schema, paths: isolated('yml-priority') });
@@ -165,17 +166,22 @@ describe('multiple formats for same base name', () => {
     write('multi/config/config.json', JSON.stringify({ port: 1111 }));
     write('multi/config/config.yaml', 'port: 2222\n');
 
-    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    const spy = spyOn(process.stderr, 'write').mockImplementation(() => true);
 
-    const config = await loadConfig({ schema, paths: isolated('multi') });
+    const config = await loadConfig({ 
+      schema, 
+      paths: isolated('multi'),
+      debug: true 
+    });
 
-    const allOutput = spy.mock.calls.map(args => args.join(' ')).join('\n');
+    const allOutput = spy.mock.calls.map(args => args[0]).join('\n');
     spy.mockRestore();
 
     // json wins (tried first in format list)
     expect(config.get('port')).toBe(1111);
 
-    // Warning was emitted
+    // Warning was emitted with new format
+    expect(allOutput).toContain('atk:config');
     expect(allOutput).toContain('Warning');
     expect(allOutput).toContain('multiple config files');
   });
@@ -186,9 +192,9 @@ describe('multiple formats for same base name', () => {
 describe('extension fallback order: json > yaml > yml > json5', () => {
   test('json beats yaml beats yml beats json5', async () => {
     // Create all four — json should win
-    write('ext-order/config/config.json',  JSON.stringify({ port: 100 }));
-    write('ext-order/config/config.yaml',  'port: 200\n');
-    write('ext-order/config/config.yml',   'port: 300\n');
+    write('ext-order/config/config.json', JSON.stringify({ port: 100 }));
+    write('ext-order/config/config.yaml', 'port: 200\n');
+    write('ext-order/config/config.yml', 'port: 300\n');
     write('ext-order/config/config.json5', '{ port: 400 }');
 
     const config = await loadConfig({ schema, paths: isolated('ext-order') });
@@ -196,8 +202,8 @@ describe('extension fallback order: json > yaml > yml > json5', () => {
   });
 
   test('falls through to yaml when json missing', async () => {
-    write('ext-yaml-fallback/config/config.yaml',  'port: 200\n');
-    write('ext-yaml-fallback/config/config.yml',   'port: 300\n');
+    write('ext-yaml-fallback/config/config.yaml', 'port: 200\n');
+    write('ext-yaml-fallback/config/config.yml', 'port: 300\n');
     write('ext-yaml-fallback/config/config.json5', '{ port: 400 }');
 
     const config = await loadConfig({ schema, paths: isolated('ext-yaml-fallback') });
@@ -215,10 +221,15 @@ describe('extension fallback order: json > yaml > yml > json5', () => {
 // ─── Debug mode output ────────────────────────────────────────────────────────
 
 describe('debug mode', () => {
+  afterEach(() => {
+    debug.disable();
+    delete process.env.DEBUG;
+  });
+
   test('debug: true emits structured output to stderr', async () => {
     write('debug-out/config/config.yaml', 'port: 3000\n');
 
-    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    const spy = spyOn(process.stderr, 'write').mockImplementation(() => true);
 
     await loadConfig({
       schema,
@@ -228,10 +239,10 @@ describe('debug mode', () => {
       debug: true,
     });
 
-    const output = spy.mock.calls.map(args => args.join(' ')).join('\n');
+    const output = spy.mock.calls.map(args => args[0]).join('\n');
     spy.mockRestore();
 
-    expect(output).toContain('[atk:config]');
+    expect(output).toContain('atk:config');
     expect(output).toContain('NODE_ENV');
     expect(output).toContain('testapp');    // appName logged
     expect(output).toContain('strict');     // strict logged
@@ -239,7 +250,7 @@ describe('debug mode', () => {
   });
 
   test('debug: true logs override keys when overrides are applied', async () => {
-    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    const spy = spyOn(process.stderr, 'write').mockImplementation(() => true);
 
     await loadConfig({
       schema,
@@ -248,7 +259,7 @@ describe('debug mode', () => {
       debug: true,
     });
 
-    const output = spy.mock.calls.map(args => args.join(' ')).join('\n');
+    const output = spy.mock.calls.map(args => args[0]).join('\n');
     spy.mockRestore();
 
     expect(output).toContain('Overrides applied');
@@ -256,7 +267,7 @@ describe('debug mode', () => {
   });
 
   test('debug: true with skipValidation logs that validation was skipped', async () => {
-    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    const spy = spyOn(process.stderr, 'write').mockImplementation(() => true);
 
     await loadConfig({
       schema,
@@ -265,7 +276,7 @@ describe('debug mode', () => {
       skipValidation: true,
     });
 
-    const output = spy.mock.calls.map(args => args.join(' ')).join('\n');
+    const output = spy.mock.calls.map(args => args[0]).join('\n');
     spy.mockRestore();
 
     expect(output).toContain('skipped');
@@ -273,40 +284,40 @@ describe('debug mode', () => {
 
   test('DEBUG=atk:config env var enables debug mode', async () => {
     process.env.DEBUG = 'atk:config';
-    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    const spy = spyOn(process.stderr, 'write').mockImplementation(() => true);
 
     await loadConfig({ schema, paths: isolated('debug-env') });
 
-    const output = spy.mock.calls.map(args => args.join(' ')).join('\n');
+    const output = spy.mock.calls.map(args => args[0]).join('\n');
     spy.mockRestore();
     delete process.env.DEBUG;
 
-    expect(output).toContain('[atk:config]');
+    expect(output).toContain('atk:config');
   });
 
   test('DEBUG=other:ns does not enable atk:config debug', async () => {
     process.env.DEBUG = 'express:*';
-    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    const spy = spyOn(process.stderr, 'write').mockImplementation(() => true);
 
     await loadConfig({ schema, paths: isolated('debug-other-ns') });
 
-    const output = spy.mock.calls.map(args => args.join(' ')).join('\n');
+    const output = spy.mock.calls.map(args => args[0]).join('\n');
     spy.mockRestore();
     delete process.env.DEBUG;
 
-    expect(output).not.toContain('[atk:config]');
+    expect(output).not.toContain('atk:config');
   });
 
   test('DEBUG=express:*,atk:config (comma list) enables debug', async () => {
     process.env.DEBUG = 'express:router,atk:config,other';
-    const spy = spyOn(console, 'error').mockImplementation(() => {});
+    const spy = spyOn(process.stderr, 'write').mockImplementation(() => true);
 
     await loadConfig({ schema, paths: isolated('debug-comma') });
 
-    const output = spy.mock.calls.map(args => args.join(' ')).join('\n');
+    const output = spy.mock.calls.map(args => args[0]).join('\n');
     spy.mockRestore();
     delete process.env.DEBUG;
 
-    expect(output).toContain('[atk:config]');
+    expect(output).toContain('atk:config');
   });
 });

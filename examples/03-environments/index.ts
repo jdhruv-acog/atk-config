@@ -1,4 +1,7 @@
 import { loadConfig } from '../../src/index.js';
+import debug from '@aganitha/atk-debug';
+
+const log = debug('atk:config:example');
 
 const config = await loadConfig({
   schema: {
@@ -49,12 +52,12 @@ const config = await loadConfig({
   debug: true
 });
 
-console.log('\n=== Environment-Based Configuration ===');
-console.log('Environment:', config.get('env'));
-console.log('Database Host:', config.get('database.host'));
-console.log('Database Pool:', `${config.get('database.pool.min')}-${config.get('database.pool.max')}`);
-console.log('Log Level:', config.get('logging.level'));
+log('=== Environment-Based Configuration ===');
+log('Environment: %s', config.get('env'));
+log('Database Host: %s', config.get('database.host'));
+log('Database Pool: %d-%d', config.get('database.pool.min'), config.get('database.pool.max'));
+log('Log Level: %s', config.get('logging.level'));
 
-console.log('\n=== Try different environments ===');
-console.log('NODE_ENV=production bun examples/03-environments/index.ts');
-console.log('NODE_ENV=testing bun examples/03-environments/index.ts');
+log('Try different environments:');
+log('NODE_ENV=production bun examples/03-environments/index.ts');
+log('NODE_ENV=testing bun examples/03-environments/index.ts');

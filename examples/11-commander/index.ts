@@ -1,5 +1,8 @@
 import { Command } from 'commander';
 import { loadConfig } from '../../src/index.js';
+import debug from '@aganitha/atk-debug';
+
+const log = debug('atk:config:example');
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 // CLI-overridable keys live at the top level with camelCase names that match
@@ -58,10 +61,10 @@ program
       },
     });
 
-    console.log('\n=== serve ===');
-    console.log(`Listening on http://${config.get('host')}:${config.get('port')}`);
-    console.log(`Log level : ${config.get('logLevel')}`);
-    console.log(`Sources   : ${config.getSources().join(', ') || 'none (all defaults)'}`);
+    log('=== serve ===');
+    log('Listening on http://%s:%d', config.get('host'), config.get('port'));
+    log('Log level : %s', config.get('logLevel'));
+    log('Sources   : %s', config.getSources().join(', ') || 'none (all defaults)');
   });
 
 // ─── status command ───────────────────────────────────────────────────────────
@@ -75,10 +78,10 @@ program
       overrides: program.opts(), // global opts only — no subcommand-specific overrides
     });
 
-    console.log('\n=== status ===');
-    console.log('Resolved config:');
-    console.log(JSON.stringify(config.getProperties(), null, 2));
-    console.log('\nSources:', config.getSources().join(', ') || 'none');
+    log('=== status ===');
+    log('Resolved config:');
+    log(JSON.stringify(config.getProperties(), null, 2));
+    log('Sources: %s', config.getSources().join(', ') || 'none');
   });
 
 program.parse();

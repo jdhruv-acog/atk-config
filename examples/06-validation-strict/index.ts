@@ -1,7 +1,7 @@
 import { loadConfig } from '../../src/index.js';
+import debug from '@aganitha/atk-debug';
 
-// config/app.yaml contains unknown keys. With strict: true, loadConfig
-// throws during auto-validation — no separate validate() call needed.
+const log = debug('atk:config:example');
 
 try {
   const config = await loadConfig({
@@ -29,16 +29,16 @@ try {
     strict: true
   });
 
-  console.log('=== Validation Strict Example ===');
-  console.log('Port:', config.get('port'));
-  console.log('Host:', config.get('host'));
-  console.log('\n✓ Validation passed (try config/app.yaml to see it fail)');
-  console.log('   Run with app-valid.yaml to see it pass:');
-  console.log('   Copy config/app-valid.yaml to config/app.yaml and re-run');
+  log('=== Validation Strict Example ===');
+  log('Port: %d', config.get('port'));
+  log('Host: %s', config.get('host'));
+  log('✓ Validation passed (try config/app.yaml to see it fail)');
+  log('   Run with app-valid.yaml to see it pass:');
+  log('   Copy config/app-valid.yaml to config/app.yaml and re-run');
 } catch (error: any) {
-  console.error('=== Validation Failed (expected) ===');
-  console.error('Error:', error.message);
-  console.error('\nconfig/app.yaml has keys not declared in the schema.');
-  console.error('Fix: either add those keys to the schema, or remove them from the file.');
+  log('=== Validation Failed (expected) ===');
+  log('Error: %s', error.message);
+  log('config/app.yaml has keys not declared in the schema.');
+  log('Fix: either add those keys to the schema, or remove them from the file.');
   process.exit(1);
 }

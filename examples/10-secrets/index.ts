@@ -1,7 +1,10 @@
 import { loadConfig } from '../../src/index.js';
+import debug from '@aganitha/atk-debug';
+
+const log = debug('atk:config:example');
 
 async function fetchFromVault(key: string): Promise<string> {
-  console.log(`[Vault] Fetching secret: ${key}`);
+  log('[Vault] Fetching secret: %s', key);
   await new Promise(resolve => setTimeout(resolve, 100));
 
   const secrets: Record<string, string> = {
@@ -14,14 +17,14 @@ async function fetchFromVault(key: string): Promise<string> {
 }
 
 async function main() {
-  console.log('=== Async Secrets Example ===\n');
+  log('=== Async Secrets Example ===');
 
-  console.log('Step 1: Fetch secrets from vault/secret manager');
+  log('Step 1: Fetch secrets from vault/secret manager');
   const dbPassword = await fetchFromVault('db-password');
   const apiKey = await fetchFromVault('api-key');
   const jwtSecret = await fetchFromVault('jwt-secret');
 
-  console.log('\nStep 2: Load config with secrets as defaults');
+  log('Step 2: Load config with secrets as defaults');
   const config = await loadConfig({
     schema: {
       database: {
@@ -57,17 +60,17 @@ async function main() {
     }
   });
 
-  console.log('\nStep 3: Use config (sensitive values masked)');
-  console.log('Database:', `${config.get('database.host')}:****`);
-  console.log('API Key:', config.get('api.key').substring(0, 8) + '...');
-  console.log('JWT Secret:', '****');
+  log('Step 3: Use config (sensitive values masked)');
+  log('Database: %s:****', config.get('database.host'));
+  log('API Key: %s...', config.get('api.key').substring(0, 8));
+  log('JWT Secret: ****');
 
-  console.log('\n=== Why async matters ===');
-  console.log('Secret managers (Vault, AWS Secrets Manager, GCP Secret Manager)');
-  console.log('require async operations. loadConfig() is async to support this.');
+  log('Why async matters:');
+  log('Secret managers (Vault, AWS Secrets Manager, GCP Secret Manager)');
+  log('require async operations. loadConfig() is async to support this.');
 
-  console.log('\n=== Config toString() masks sensitive values ===');
-  console.log(config.toString());
+  log('Config toString() masks sensitive values:');
+  log(config.toString());
 }
 
-main().catch(console.error);
+main().catch((err) => log('Error: %s', err.message));
