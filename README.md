@@ -14,7 +14,7 @@ bun add @aganitha/atk-config
 Define a schema, call `loadConfig`. That's it.
 
 ```ts
-import { loadConfig } from 'atk-config';
+import { loadConfig } from '@aganitha/atk-config';
 
 const config = await loadConfig({
   schema: {
@@ -251,7 +251,7 @@ Pass CLI flags directly as overrides. Flags the user didn't pass come through as
 
 ```ts
 import { Command } from 'commander';
-import { loadConfig } from 'atk-config';
+import { loadConfig } from '@aganitha/atk-config';
 
 const program = new Command()
   .option('--log-level <level>', 'Log level');
@@ -419,7 +419,7 @@ config.has('database.host')   // boolean — whether the path exists in the sche
 When you need the config type for function parameters or other explicit annotations:
 
 ```ts
-import type { InferConfig } from 'atk-config';
+import type { InferConfig } from '@aganitha/atk-config';
 
 const schema = { port: { format: 'port', default: 3000 } };
 type AppConfig = InferConfig<typeof schema>;  // { port: number }

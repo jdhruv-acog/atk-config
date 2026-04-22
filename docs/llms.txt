@@ -1,0 +1,286 @@
+# @aganitha/atk-config — LLM Reference
+
+Package: `@aganitha/atk-config` v3.1.3
+Install: `bun add @aganitha/atk-config`
+Requires: TypeScript 5.0+, Node.js ≥16.9.0
+
+Schema-validated hierarchical configuration for Node.js/Bun. Define schema once → get validation, type inference, and multi-layer merging from files, env vars, and code. No surprises.
+
+---
+
+## Core usage
+
+```typescript
+import { loadConfig } from '@aganitha/atk-config';
+
+const config = await loadConfig({
+  schema: {
+    port:     { format: 'port',   default: 3000,   env: 'PORT' },
+    logLevel: { format: ['debug', 'info', 'warn', 'error'] as const,
+                                  default: 'info',  env: 'LOG_LEVEL' },
+    database: {
+      host:   { format: String,   default: 'localhost', env: 'DB_HOST' },
+      port:   { format: 'port',   default: 5432,        env: 'DB_PORT' },
+    },
+  },
+});
+
+config.get('port')           // number
+config.get('database.host')  // string
+config.get('database')       // { host: string; port: number }
+config.getProperties()       // full typed object
+```
+
+`loadConfig` throws before returning if validation fails — the returned config is always safe to use.
+
+---
+
+## Schema fields
+
+Every leaf key requires `format` and `default`. All other fields are optional.
+
+```typescript
+keyName: {
+  format:    <FormatType>,        // required — determines type and validation
+  default:   <value>,             // required — used when nothing else sets the value
+  env?:      'ENV_VAR_NAME',      // binds an environment variable to this key
+  doc?:      'Human description', // informational only
+  sensitive?: boolean,            // if true, masked as "[Sensitive]" in toString()
+}
+```
+
+### Formats and inferred TypeScript types
+
+| Format | TS type | Validates |
+|--------|---------|-----------|
+| `'port'` | `number` | Integer 0–65535 |
+| `'nat'` | `number` | Non-negative integer |
+| `'int'` | `number` | Any integer |
+| `'url'` | `string` | Valid URL |
+| `'email'` | `string` | Valid email |
+| `'ipaddress'` | `string` | IPv4 or IPv6 |
+| `String` | `string` | Any string |
+| `Number` | `number` | Any number |
+| `Boolean` | `boolean` | `true`/`false`, `"true"`/`"false"`, `1`/`0` |
+| `Array` | `any[]` | Any array |
+| `['a','b'] as const` | `'a' \| 'b'` | Exact enum match |
+
+Note: `String`, `Number`, `Boolean` are constructor functions, not string literals.
+
+---
+
+## Resolution order (lowest → highest priority)
+
+| # | Source | Active when |
+|---|--------|-------------|
+| 1 | Schema `default` | always |
+| 2 | `baseConfig` option | always |
+| 3 | `./config/{files}.*` | always |
+| 4 | `./config/{NODE_ENV}.*` | always |
+| 5 | `~/.atk/{files}.*` | always |
+| 6 | `~/.atk/{appName}.*` | only when `appName` is set |
+| 7 | Environment variables | always |
+| 8 | `overrides` option | always |
+
+Objects merge recursively at each layer. Arrays replace entirely (not concatenated).
+
+---
+
+## Config files
+
+Default location: `./config/config.yaml` (or `.json` → `.yaml` → `.yml` → `.json5`, first match wins).
+
+```
+config/
+├── config.yaml       ← base, always loaded
+├── production.yaml   ← merged when NODE_ENV=production
+├── development.yaml  ← merged when NODE_ENV=development
+└── test.yaml         ← merged when NODE_ENV=test
+```
+
+Multiple file names (loaded in order, then NODE_ENV overlay on top):
+```typescript
+await loadConfig({ schema, files: ['common', 'app'] });
+// loads: config/common.yaml → config/app.yaml → config/{NODE_ENV}.yaml
+```
+
+---
+
+## Variable substitution in files
+
+Resolved against environment variables before the file is parsed.
+
+```yaml
+database:
+  host:     ${DB_HOST:-localhost}
+  password: "${DB_PASSWORD:?Set DB_PASSWORD before starting}"
+  url:      "postgresql://${DB_HOST:-localhost}:5432/mydb"
+```
+
+| Syntax | Behavior |
+|--------|----------|
+| `${VAR}` | Value of VAR, empty string if unset |
+| `${VAR:-default}` | Value of VAR, or `default` if unset/empty |
+| `${VAR:?message}` | Value of VAR, or throws with `message` if unset/empty |
+
+**Gotcha:** Unquoted empty substitutions become YAML `null`. Always quote values that might be empty:
+`"${DB_PASSWORD:-}"` → `""` ✓ vs `${DB_PASSWORD:-}` → `null` ✗
+
+---
+
+## `loadConfig` options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `schema` | object | — | **Required.** Schema definition |
+| `files` | `string[]` | `['config']` | Base file names to load |
+| `baseConfig` | object | — | Programmatic base layer (below files) |
+| `overrides` | object | — | Highest-priority layer (above env vars) |
+| `appName` | string | — | Enables `~/.atk/{appName}.*` |
+| `paths.config` | string | `'./config'` | Project config directory |
+| `paths.global` | string | `'~/.atk'` | Global developer config directory |
+| `strict` | boolean | `false` | Unknown keys throw instead of warn |
+| `skipValidation` | boolean | `false` | Skip automatic validation |
+| `debug` | boolean | `false` | Verbose output to stderr |
+
+Returns `Promise<ConfigInstance<InferConfig<S>>>`.
+
+---
+
+## Config instance methods
+
+```typescript
+config.get('database.host')   // typed value; dot notation checked at compile time
+config.getProperties()        // entire config as typed plain object
+config.getSources()           // string[] of file paths loaded, in merge order
+config.validate()             // throws if invalid; use with skipValidation: true
+config.toString()             // JSON string with sensitive values masked as "[Sensitive]"
+config.has('database.host')   // boolean — path exists in schema
+```
+
+---
+
+## `InferConfig` utility type
+
+```typescript
+import type { InferConfig } from '@aganitha/atk-config';
+
+const schema = {
+  port: { format: 'port', default: 3000 },
+  database: { host: { format: String, default: 'localhost' } },
+};
+
+type AppConfig = InferConfig<typeof schema>;
+// → { port: number; database: { host: string } }
+
+function startServer(cfg: AppConfig) { ... }
+startServer(config.getProperties());
+```
+
+---
+
+## Common patterns
+
+### baseConfig — computed defaults
+
+```typescript
+const region = await detectRegion();
+
+const config = await loadConfig({
+  schema,
+  baseConfig: { region, database: { host: `db.${region}.internal` } },
+  // config files can still override these
+});
+```
+
+### overrides — Commander.js CLI flags
+
+`undefined` values are ignored (flag not passed → falls through to file/env). Unknown keys silently dropped. Nested objects flattened (`{ database: { host } }` sets only `database.host`).
+
+```typescript
+import { Command } from 'commander';
+
+const program = new Command().option('--log-level <level>');
+
+program
+  .command('serve')
+  .option('--port <n>', 'Port', Number)
+  .action(async (opts) => {
+    const config = await loadConfig({
+      schema,
+      overrides: { ...program.opts(), ...opts },
+    });
+  });
+
+program.parse();
+```
+
+CLI flag → schema key mapping: `--log-level` → `logLevel`, `--port` → `port`. Deeply nested keys (`database.pool.max`) are not directly CLI-overridable — use env vars instead.
+
+### Secrets
+
+```typescript
+// Pattern 1: required env var (app refuses to start if missing)
+// in config/config.yaml:
+//   database:
+//     password: "${DB_PASSWORD:?Set DB_PASSWORD}"
+
+// Pattern 2: pre-fetched from vault
+const dbPassword = await vault.get('db/password');
+
+const config = await loadConfig({
+  schema: {
+    database: {
+      password: { format: String, default: dbPassword, sensitive: true },
+    },
+  },
+});
+// sensitive: true masks in toString() but does NOT affect config.get()
+```
+
+### Global developer config
+
+```typescript
+await loadConfig({ schema, appName: 'my-api' });
+// also loads ~/.atk/my-api.yaml (per-developer, never committed)
+```
+
+`~/.atk/config.yaml` applies to all apps loading `files: ['config']`. Good for personal defaults like `logLevel: debug`.
+
+### Strict mode
+
+```typescript
+await loadConfig({ schema, strict: true });
+// unknown keys in config files throw (catches typos)
+```
+
+### Deferred validation
+
+```typescript
+const config = await loadConfig({ schema, skipValidation: true });
+console.log(config.getProperties()); // inspect before validating
+config.validate();                   // throws if invalid
+```
+
+---
+
+## Debugging
+
+```bash
+DEBUG=atk:config bun start
+```
+
+Or `debug: true` in options. Output goes to stderr, showing which files loaded in what order, sources, and validation status. Inspect sources in code: `config.getSources()`.
+
+---
+
+## Constraints and gotchas
+
+- Schema requires both `format` and `default` on every leaf key — no exceptions.
+- Enum formats require `as const`: `['a', 'b'] as const` (otherwise typed as `string[]`).
+- If multiple formats exist for the same base name (e.g., `config.json` and `config.yaml`), a warning is logged and `.json` wins.
+- Missing config files are silently skipped — no errors.
+- `sensitive: true` only masks `toString()` output; `get()` still returns the real value.
+- Variable substitution runs on raw file text before YAML/JSON parsing — quote values that might be empty.
+- Circular references in `deepMerge` throw.
+- TypeScript 4.x: add `as const` to the schema object for type inference.

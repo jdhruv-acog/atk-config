@@ -88,7 +88,7 @@ config.get('typo.key')            // → TypeScript error at compile time
 When you need the config type explicitly (e.g., for function parameter types):
 
 ```typescript
-import type { InferConfig } from 'atk-config';
+import type { InferConfig } from '@aganitha/atk-config';
 
 const schema = {
   port: { format: 'port', default: 3000 },
@@ -330,7 +330,7 @@ const config = await loadConfig({
 
 ```typescript
 import { Command } from 'commander';
-import { loadConfig } from 'atk-config';
+import { loadConfig } from '@aganitha/atk-config';
 
 const program = new Command()
   .option('--log-level <level>', 'Log level');
