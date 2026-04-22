@@ -1,4 +1,7 @@
 import { loadConfig } from '../../src/index.js';
+import debug from '@aganitha/atk-debug';
+
+const log = debug('atk:config:example');
 
 const config = await loadConfig({
   schema: {
@@ -37,18 +40,17 @@ const config = await loadConfig({
   debug: true
 });
 
-console.log('\n=== App Name Example ===');
-console.log('App Name:', config.get('appName'));
-console.log('Server Port:', config.get('server.port'));
-console.log('Database Host:', config.get('database.host'));
+log('=== App Name Example ===');
+log('App Name: %s', config.get('appName'));
+log('Server Port: %d', config.get('server.port'));
+log('Database Host: %s', config.get('database.host'));
 
-console.log('\n=== How appName works ===');
-console.log('When appName is set to "myapp", the loader also loads:');
-console.log('  ~/.atk/myapp.{json,yaml,yml,json5}');
-console.log('');
-console.log('This allows personal developer overrides stored outside the project.');
+log('How appName works:');
+log('When appName is set to "myapp", the loader also loads:');
+log('  ~/.atk/myapp.{json,yaml,yml,json5}');
+log('This allows personal developer overrides stored outside the project.');
 
-console.log('\n=== Create a global config (optional) ===');
-console.log('mkdir -p ~/.atk');
-console.log('echo "server:\\n  port: 7000" > ~/.atk/myapp.yaml');
-console.log('bun examples/09-app-name/index.ts');
+log('Create a global config (optional):');
+log('mkdir -p ~/.atk');
+log('echo "server:\\n  port: 7000" > ~/.atk/myapp.yaml');
+log('bun examples/09-app-name/index.ts');

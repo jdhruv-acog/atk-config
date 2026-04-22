@@ -1,4 +1,7 @@
 import { loadConfig } from '../../src/index.js';
+import debug from '@aganitha/atk-debug';
+
+const log = debug('atk:config:example');
 
 /**
  * The simplest usage: define a schema, call loadConfig.
@@ -43,7 +46,7 @@ const port: number = config.get('port');
 const host: string = config.get('host');
 const logLevel: 'debug' | 'info' | 'warn' | 'error' = config.get('logLevel');
 
-console.log('=== Basic Example ===');
-console.log(`Server  : http://${host}:${port}`);
-console.log(`LogLevel: ${logLevel}`);
-console.log(`Sources : ${config.getSources().join(', ') || 'none (all defaults)'}`);
+log('=== Basic Example ===');
+log(`Server  : http://${host}:${port}`);
+log(`LogLevel: ${logLevel}`);
+log(`Sources : ${config.getSources().join(', ') || 'none (all defaults)'}`);

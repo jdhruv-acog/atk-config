@@ -5,6 +5,7 @@
     "": {
       "name": "atk-config",
       "dependencies": {
+        "@aganitha/atk-debug": "^0.1.5",
         "convict": "^6.2.4",
         "convict-format-with-validator": "^6.2.0",
         "json5": "^2.2.3",
@@ -19,6 +20,8 @@
     },
   },
   "packages": {
+    "@aganitha/atk-debug": ["@aganitha/atk-debug@0.1.5", "https://npm.aganitha.ai/@aganitha/atk-debug/-/atk-debug-0.1.5.tgz", { "dependencies": { "debug": "^4.3.7" } }, "sha512-Cyj7gdkqsgNP0Pvh3lS6aSosCAV77AbMsfGHpcH5zC84e+xFT0grURGRhS8td1EJej1it9HklYivCLJi65aDAA=="],
+
     "@types/bun": ["@types/bun@1.3.8", "", { "dependencies": { "bun-types": "1.3.8" } }, "sha512-3LvWJ2q5GerAXYxO2mffLTqOzEu5qnhEAlh48Vnu8WQfnmSwbgagjGZV6BoHKJztENYEDn6QmVd949W4uESRJA=="],
 
     "@types/convict": ["@types/convict@6.1.6", "", { "dependencies": { "@types/node": "*" } }, "sha512-1B6jqWHWQud+7yyWAqbxnPmzlHrrOtJzZr1DhhYJ/NbpS4irfZSnq+N5Fm76J9LNRlUZvCmYxTVhhohWRvtqHw=="],
@@ -33,9 +36,13 @@
 
     "convict-format-with-validator": ["convict-format-with-validator@6.2.0", "", { "dependencies": { "validator": "^13.6.0" } }, "sha512-2LIL3yEZY27M13UHLIP4mGivusP9h2M+X4mYsRBLexwUp8+0sgVk2MgB2b2bnQwkn293lkbkxgdevzn0nZdyzQ=="],
 
+    "debug": ["debug@4.4.3", "", { "dependencies": { "ms": "^2.1.3" } }, "sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA=="],
+
     "json5": ["json5@2.2.3", "", { "bin": { "json5": "lib/cli.js" } }, "sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg=="],
 
     "lodash.clonedeep": ["lodash.clonedeep@4.5.0", "", {}, "sha512-H5ZhCF25riFd9uB5UCkVKo61m3S/xZk1x4wA6yp/L3RFP6Z/eHH1ymQcGLo7J3GMPfm0V/7m1tryHuGVxpqEBQ=="],
+
+    "ms": ["ms@2.1.3", "", {}, "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA=="],
 
     "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 

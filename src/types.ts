@@ -100,7 +100,7 @@ export interface LoadConfigOptions<S = any> {
   /** Skip automatic validation after load. Call config.validate() manually when ready. Default: false. */
   skipValidation?: boolean;
 
-  /** Enable verbose loading output to stderr. Also enabled by DEBUG=atk:config. */
+  /** Enable verbose loading output to stderr via @aganitha/atk-debug. Also enabled by DEBUG=atk:config. */
   debug?: boolean;
 }
 

@@ -1,14 +1,7 @@
 import { loadConfig } from '../../src/index.js';
+import debug from '@aganitha/atk-debug';
 
-/**
- * The `baseConfig` option sets a programmatic base layer that sits above
- * schema defaults but below config files.
- *
- * Priority: schema default < baseConfig < config file < env var < overrides
- *
- * Use it when your defaults come from code at runtime — computed values,
- * feature flags, or anything not known at schema-definition time.
- */
+const log = debug('atk:config:example');
 
 const config = await loadConfig({
   schema: {
@@ -65,12 +58,12 @@ const config = await loadConfig({
   debug: true,
 });
 
-console.log('\n=== Base Config Example ===');
-console.log('Server Port:', config.get('server.port'));
-console.log('Features:');
-console.log('  Rate Limit:', config.get('features.rateLimit'));
-console.log('  CORS:', config.get('features.cors'));
-console.log('API:');
-console.log('  Timeout:', config.get('api.timeout'));
-console.log('  Retries:', config.get('api.retries'));
-console.log('\nSources:', config.getSources().join(', ') || 'none');
+log('=== Base Config Example ===');
+log('Server Port: %d', config.get('server.port'));
+log('Features:');
+log('  Rate Limit: %s', config.get('features.rateLimit'));
+log('  CORS: %s', config.get('features.cors'));
+log('API:');
+log('  Timeout: %d', config.get('api.timeout'));
+log('  Retries: %d', config.get('api.retries'));
+log('Sources: %s', config.getSources().join(', ') || 'none');

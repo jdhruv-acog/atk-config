@@ -1,4 +1,7 @@
 import { loadConfig } from '../../src/index.js';
+import debug from '@aganitha/atk-debug';
+
+const log = debug('atk:config:example');
 
 const config = await loadConfig({
   schema: {
@@ -47,8 +50,8 @@ const config = await loadConfig({
   debug: true
 });
 
-console.log('\n=== Multi-File Configuration ===');
-console.log('App Name:', config.get('appName'));
-console.log('API URL:', config.get('api.url'));
-console.log('API Timeout:', config.get('api.timeout'));
-console.log('Database:', `${config.get('database.host')}:${config.get('database.port')}`);
+log('=== Multi-File Configuration ===');
+log('App Name: %s', config.get('appName'));
+log('API URL: %s', config.get('api.url'));
+log('API Timeout: %d', config.get('api.timeout'));
+log('Database: %s:%d', config.get('database.host'), config.get('database.port'));

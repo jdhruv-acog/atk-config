@@ -1,4 +1,7 @@
 import { loadConfig } from '../../src/index.js';
+import debug from '@aganitha/atk-debug';
+
+const log = debug('atk:config:example');
 
 const config = await loadConfig({
   schema: {
@@ -85,16 +88,16 @@ const config = await loadConfig({
   }
 });
 
-console.log('=== Nested Schema Example ===');
-console.log('\nApp:');
-console.log('  Name:', config.get('app.name'));
-console.log('  Version:', config.get('app.version'));
+log('=== Nested Schema Example ===');
+log('App:');
+log('  Name: %s', config.get('app.name'));
+log('  Version: %s', config.get('app.version'));
 
-console.log('\nServer:');
-console.log('  HTTP:', `${config.get('server.http.host')}:${config.get('server.http.port')}`);
-console.log('  HTTPS Enabled:', config.get('server.https.enabled'));
-console.log('  HTTPS:', `${config.get('server.http.host')}:${config.get('server.https.port')}`);
+log('Server:');
+log('  HTTP: %s:%d', config.get('server.http.host'), config.get('server.http.port'));
+log('  HTTPS Enabled: %s', config.get('server.https.enabled'));
+log('  HTTPS: %s:%d', config.get('server.http.host'), config.get('server.https.port'));
 
-console.log('\nDatabase:');
-console.log('  Primary:', `${config.get('database.primary.host')}:${config.get('database.primary.port')}`);
-console.log('  Replica:', `${config.get('database.replica.host')}:${config.get('database.replica.port')}`);
+log('Database:');
+log('  Primary: %s:%d', config.get('database.primary.host'), config.get('database.primary.port'));
+log('  Replica: %s:%d', config.get('database.replica.host'), config.get('database.replica.port'));
