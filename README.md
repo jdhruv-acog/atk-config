@@ -7,7 +7,7 @@ Define a schema once, and it takes care of loading, merging, and validating conf
 Read the [full guide](https://github.com/jdhruv-acog/atk-config/blob/main/docs/guide.md) and [examples](https://github.com/jdhruv-acog/atk-config/tree/main/examples). Requires TypeScript `5.0+`.
 
 ```bash
-bun add atk-config
+bun add @aganitha/atk-config
 ```
 ## Quick start
 
